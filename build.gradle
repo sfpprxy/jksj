@@ -1,0 +1,62 @@
+plugins {
+    id 'java'
+    id 'io.quarkus' version '1.7.2.Final'
+    id 'org.jetbrains.intellij' version '0.4.22'
+    id 'org.jetbrains.kotlin.jvm' version '1.4.0'
+//    id "org.jetbrains.kotlin.plugin.allopen" version "1.4.0"
+}
+
+group 'com.jksj'
+version '1.0-SNAPSHOT'
+
+allprojects {
+  repositories {
+      mavenCentral()
+//    maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
+//    maven { url "https://jitpack.io" }
+  }
+}
+
+dependencies {
+    implementation enforcedPlatform('io.quarkus:quarkus-bom:1.7.2.Final')
+    implementation 'io.quarkus:quarkus-kotlin'
+    implementation 'io.quarkus:quarkus-resteasy'
+    implementation 'io.quarkus:quarkus-resteasy-jackson'
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
+
+    compile 'io.github.microutils:kotlin-logging:1.8.3'
+
+    testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'io.rest-assured:rest-assured'
+}
+
+test {
+    useJUnitPlatform()
+    exclude '**/Native*'
+}
+
+//buildNative {
+//    enableHttpUrlHandler = true
+//}
+
+//allOpen {
+//    annotation("javax.ws.rs.Path")
+//    annotation("javax.enterprise.context.ApplicationScoped")
+//    annotation("io.quarkus.test.junit.QuarkusTest")
+//}
+
+// See https://github.com/JetBrains/gradle-intellij-plugin/
+intellij {
+    version '2020.1.4'
+}
+compileKotlin {
+    kotlinOptions.jvmTarget = "11"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "11"
+}
+patchPluginXml {
+    changeNotes """
+      Add change notes here.<br>
+      <em>most HTML tags may be used</em>"""
+}
