@@ -1,5 +1,8 @@
 package com.jksj.model
 
+import io.quarkus.runtime.annotations.RegisterForReflection
+
+@RegisterForReflection
 data class RemoteWorkApply(
-    val time: Long
+    var hour: Double
 )

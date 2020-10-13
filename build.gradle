@@ -1,9 +1,10 @@
 plugins {
     id 'java'
-    id 'io.quarkus' version '1.7.2.Final'
+    id 'io.quarkus' version '1.8.1.Final'
     id 'org.jetbrains.intellij' version '0.4.22'
     id 'org.jetbrains.kotlin.jvm' version '1.4.0'
 //    id "org.jetbrains.kotlin.plugin.allopen" version "1.4.0"
+    id 'nu.studer.jooq' version '5.1.1'
 }
 
 group 'com.jksj'
@@ -18,13 +19,24 @@ allprojects {
 }
 
 dependencies {
-    implementation enforcedPlatform('io.quarkus:quarkus-bom:1.7.2.Final')
+    implementation enforcedPlatform('io.quarkus:quarkus-bom:1.8.1.Final')
     implementation 'io.quarkus:quarkus-kotlin'
     implementation 'io.quarkus:quarkus-resteasy'
     implementation 'io.quarkus:quarkus-resteasy-jackson'
     implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
 
-    compile 'io.github.microutils:kotlin-logging:1.8.3'
+    implementation 'io.quarkus:quarkus-jdbc-postgresql'
+    implementation 'io.quarkus:quarkus-agroal'
+    implementation 'io.quarkus:quarkus-flyway'
+    implementation 'org.jooq:jooq:3.13.4'
+    jooqGenerator 'org.postgresql:postgresql:42.2.14'
+
+//    implementation 'javax.persistence:javax.persistence-api:2.2'
+
+    implementation 'io.github.microutils:kotlin-logging:1.8.3'
+    implementation 'com.google.code.gson:gson:2.8.6'
+
+    implementation 'io.quarkus:quarkus-quartz'
 
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.rest-assured:rest-assured'
@@ -35,9 +47,116 @@ test {
     exclude '**/Native*'
 }
 
-//buildNative {
-//    enableHttpUrlHandler = true
-//}
+jooq {
+//    version = '3.13.4'
+//    edition = nu.studer.gradle.jooq.JooqEdition.OSS
+
+    configurations {
+        main {
+            generationTool {
+                logging = org.jooq.meta.jaxb.Logging.WARN
+                jdbc {
+                    driver = 'org.postgresql.Driver'
+                    url = property("db.url")
+                    user = property("db.user")
+                    password = property("db.password")
+                    properties {
+                        property {
+                            key = 'PAGE_SIZE'
+                            value = 2048
+                        }
+                    }
+                }
+                generator {
+                    name = 'org.jooq.codegen.DefaultGenerator'
+                    database {
+                        name = 'org.jooq.meta.postgres.PostgresDatabase'
+                        inputSchema = 'public'
+                        forcedTypes {
+                            forcedType {
+                                name = 'varchar'
+                                includeExpression = '.*'
+                                includeTypes = 'JSONB?'
+                            }
+                            forcedType {
+                                name = 'varchar'
+                                includeExpression = '.*'
+                                includeTypes = 'INET'
+                            }
+                        }
+                    }
+                    generate {
+                        deprecated = false
+                        pojos = true
+                        records = true
+                        immutablePojos = false
+                        fluentSetters = true
+                        daos = true
+                    }
+                    target {
+                        packageName = 'com.jksj.jooq'
+                        directory = 'build/generated/src/main/java'
+                    }
+                    strategy.name = "org.jooq.codegen.DefaultGeneratorStrategy"
+                }
+            }
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java.srcDirs += 'build/generated/src/main/java'
+        java.srcDirs += 'src/main/kotlin'
+    }
+}
+
+quarkusBuild {
+//    nativeArgs {
+//        '--no-fallback'
+////            '--enable-all-security-services',
+////            '--initialize-at-run-time=com.example.runtime',
+//        '--report-unsupported-elements-at-runtime'
+//    }
+}
+
+tasks.register("depsize") {
+    description = 'Prints dependencies for "default" configuration'
+    doLast() {
+        listConfigurationDependencies(configurations.default)
+    }
+}
+
+tasks.register("depsize-all-configurations") {
+    description = 'Prints dependencies for all available configurations'
+    doLast() {
+        configurations
+            .findAll { it.isCanBeResolved() }
+            .each { listConfigurationDependencies(it) }
+    }
+}
+
+def listConfigurationDependencies(Configuration configuration) {
+    def formatStr = "%,10.2f"
+
+    def size = configuration.collect { it.length() / (1024 * 1024) }.sum()
+
+    def out = new StringBuffer()
+    out << "\nConfiguration name: \"${configuration.name}\"\n"
+    if (size) {
+        out << 'Total dependencies size:'.padRight(65)
+        out << "${String.format(formatStr, size)} Mb\n\n"
+
+        configuration.sort { -it.length() }
+            .each {
+                out << "${it.name}".padRight(65)
+                out << "${String.format(formatStr, (it.length() / 1024))} kb\n"
+            }
+    } else {
+        out << 'No dependencies found';
+    }
+    println(out)
+}
 
 //allOpen {
 //    annotation("javax.ws.rs.Path")

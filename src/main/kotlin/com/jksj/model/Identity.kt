@@ -1,9 +1,8 @@
 package com.jksj.model
 
+import io.quarkus.runtime.annotations.RegisterForReflection
+
+@RegisterForReflection
 data class Identity(
-    val id: String,
-    val name: String,
-    val token: String,
-    val password: String,
-    val role: String
+    var token: String
 )

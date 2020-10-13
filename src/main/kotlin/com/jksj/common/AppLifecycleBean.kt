@@ -13,10 +13,12 @@ class AppLifecycleBean {
 
     fun onStart(@Observes ev: StartupEvent?) {
         log.info { "The application is starting..." }
+        // todo load caches to db
     }
 
     fun onStop(@Observes ev: ShutdownEvent?) {
         log.info { "The application is stopping..." }
+        // todo flush caches to db
     }
 
 }
