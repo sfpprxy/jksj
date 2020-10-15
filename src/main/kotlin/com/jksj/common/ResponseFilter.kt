@@ -17,10 +17,7 @@ class ResponseFilter : ContainerResponseFilter {
     lateinit var requestFilter: RequestFilter
 
     override fun filter(requestContext: ContainerRequestContext?, responseContext: ContainerResponseContext?) {
-        if (responseContext!!.status == 204) {
-            return
-        }
-        val entity = responseContext.entity
+        val entity = responseContext!!.entity ?: return
         val str = entity.toString()
         var error: ErrorResp? = null
 

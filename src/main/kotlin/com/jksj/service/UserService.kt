@@ -6,9 +6,11 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jksj.api.UserApi
 import com.jksj.common.*
+import com.jksj.db.BizCacheRepo
 import com.jksj.db.RemoteWorkRepo
 import com.jksj.db.UserRepo
 import com.jksj.jooq.tables.pojos.AppUser
+import com.jksj.jooq.tables.pojos.BizCache
 import com.jksj.jooq.tables.pojos.RemoteWork
 import com.jksj.model.*
 import io.quarkus.scheduler.Scheduled
@@ -18,6 +20,7 @@ import java.net.URL
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.util.*
+import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -35,6 +38,9 @@ class UserService : UserApi {
 
     @Inject
     lateinit var remoteWorkRepo: RemoteWorkRepo
+
+    @Inject
+    lateinit var bizCacheRepo: BizCacheRepo
 
     private val threadPool: ExecutorService = Executors.newCachedThreadPool()
 
@@ -172,9 +178,10 @@ class UserService : UserApi {
 
         remoteWork.timeStart?.let {
             remoteWork.timeUsed -= 1
+            val timeApplied = remoteWork.timeApplied!!
             val sessionTimeUsedSec = Instant.now().epochSecond - it
-            remoteWork.timeUsedSec = sessionTimeUsedSec + timeUsedSec
-            remoteWork.timeRemaining = remoteWork.timeApplied!! - sessionTimeUsedSec
+            remoteWork.timeUsedSec = sessionTimeUsedSec + timeUsedSec - timeApplied
+            remoteWork.timeRemaining = timeApplied - sessionTimeUsedSec
             if (remoteWork.timeRemaining > 0) {
                 return remoteWork
             }
@@ -234,6 +241,32 @@ class UserService : UserApi {
         )
         remoteWorkSessions.put(userSession.id, newRemote)
         return newRemote
+    }
+
+    fun persistUserSessions() {
+        val json = Gson().toJson(userSessions.asMap())
+        log.info { "persisting userSessions: $json" }
+        bizCacheRepo.merge(BizCache("userSessions", json))
+    }
+
+    fun loadUserSessions() {
+        val json = bizCacheRepo.dao().fetchOneById("userSessions").cacheStr ?: "{}"
+        val type = object : TypeToken<ConcurrentMap<String, AppUser>>() {}.type
+        val map = Gson().fromJson<ConcurrentMap<String, AppUser>>(json, type)
+        userSessions.putAll(map)
+    }
+
+    fun persistRemoteWorkSessions() {
+        val json = Gson().toJson(remoteWorkSessions.asMap())
+        log.info { "persisting remoteWorkSessions: $json" }
+        bizCacheRepo.merge(BizCache("remoteWorkSessions", json))
+    }
+
+    fun loadRemoteWorkSessions() {
+        val json = bizCacheRepo.dao().fetchOneById("remoteWorkSessions")?.cacheStr ?: "{}"
+        val type = object : TypeToken<ConcurrentMap<String, RemoteWorkStats>>() {}.type
+        val map = Gson().fromJson<ConcurrentMap<String, RemoteWorkStats>>(json, type)
+        remoteWorkSessions.putAll(map)
     }
 
 }

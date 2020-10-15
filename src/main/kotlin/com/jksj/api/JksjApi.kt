@@ -13,7 +13,15 @@ interface JksjApi {
     @POST @Path("/test0")
     @Produces(MediaType.TEXT_PLAIN)
     fun test(login: Login): String {
-        return "test ok"
+        return "response will be 404"
     }
+
+    @POST @Path("/shutdown")
+    @Produces(MediaType.TEXT_PLAIN)
+    fun shutdown()
+
+    @POST @Path("/test")
+    @Produces(MediaType.TEXT_PLAIN)
+    fun testable(): String
 
 }

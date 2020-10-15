@@ -1,9 +1,11 @@
+import java.lang.annotation.Annotation
+
 plugins {
     id 'java'
     id 'io.quarkus' version '1.8.1.Final'
     id 'org.jetbrains.intellij' version '0.4.22'
     id 'org.jetbrains.kotlin.jvm' version '1.4.0'
-//    id "org.jetbrains.kotlin.plugin.allopen" version "1.4.0"
+    id "org.jetbrains.kotlin.plugin.allopen" version "1.4.0"
     id 'nu.studer.jooq' version '5.1.1'
 }
 
@@ -33,7 +35,7 @@ dependencies {
 
 //    implementation 'javax.persistence:javax.persistence-api:2.2'
 
-    implementation 'io.github.microutils:kotlin-logging:1.8.3'
+    implementation 'io.github.microutils:kotlin-logging:1.12.0'
     implementation 'com.google.code.gson:gson:2.8.6'
 
     implementation 'io.quarkus:quarkus-quartz'
@@ -158,11 +160,12 @@ def listConfigurationDependencies(Configuration configuration) {
     println(out)
 }
 
-//allOpen {
+allOpen {
+    annotation("com.jksj.common.AllOpen")
 //    annotation("javax.ws.rs.Path")
 //    annotation("javax.enterprise.context.ApplicationScoped")
 //    annotation("io.quarkus.test.junit.QuarkusTest")
-//}
+}
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {

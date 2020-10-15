@@ -5,18 +5,14 @@ import com.jksj.common.exp
 import com.jksj.jooq.tables.AppUser.APP_USER
 import com.jksj.jooq.tables.daos.AppUserDao
 import com.jksj.jooq.tables.pojos.AppUser
+import com.jksj.jooq.tables.records.AppUserRecord
 import mu.KotlinLogging
-import org.jooq.DSLContext
 import javax.enterprise.context.ApplicationScoped
-import javax.inject.Inject
 
 @ApplicationScoped
-class UserRepo {
+class UserRepo : GenericRepo<AppUserRecord>(APP_USER) {
 
     private val log = KotlinLogging.logger {}
-
-    @Inject
-    lateinit var dsl: DSLContext
 
     fun dao(): AppUserDao {
         return AppUserDao(dsl.configuration())

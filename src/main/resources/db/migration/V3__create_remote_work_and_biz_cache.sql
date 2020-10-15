@@ -12,5 +12,5 @@ create table remote_work
 create table biz_cache
 (
     id        text not null PRIMARY KEY,
-    cache_str json not null
+    cache_str text not null
 );

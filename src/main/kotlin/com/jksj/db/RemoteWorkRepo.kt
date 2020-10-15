@@ -2,20 +2,16 @@ package com.jksj.db
 
 import com.jksj.jooq.Tables.REMOTE_WORK
 import com.jksj.jooq.tables.daos.RemoteWorkDao
+import com.jksj.jooq.tables.records.RemoteWorkRecord
 import mu.KotlinLogging
-import org.jooq.DSLContext
 import org.jooq.impl.DSL.count
 import org.jooq.impl.DSL.sum
 import javax.enterprise.context.ApplicationScoped
-import javax.inject.Inject
 
 @ApplicationScoped
-class RemoteWorkRepo {
+class RemoteWorkRepo : GenericRepo<RemoteWorkRecord>(REMOTE_WORK) {
 
     private val log = KotlinLogging.logger {}
-
-    @Inject
-    lateinit var dsl: DSLContext
 
     fun dao(): RemoteWorkDao {
         return RemoteWorkDao(dsl.configuration())
@@ -27,8 +23,8 @@ class RemoteWorkRepo {
             .where(REMOTE_WORK.USER_ID.eq(id))
             .fetchOne()
 
-        val timeUsed = res.value1()
-        val timeUsedSec = res.value2().toLong()
+        val timeUsed = res.value1() ?: 0
+        val timeUsedSec = res.value2()?.toLong() ?: 0
 
         return Pair(timeUsed, timeUsedSec)
     }
