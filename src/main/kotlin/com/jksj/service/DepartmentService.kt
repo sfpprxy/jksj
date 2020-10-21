@@ -46,7 +46,8 @@ class DepartmentService : DepartmentApi {
         }
     }
 
-    private fun loadAllFromVH(users: List<Department>): List<Department> {
+    @Suppress("UNUSED_PARAMETER")
+    private fun loadAllFromVH(depts: List<Department>): List<Department> {
         TODO("later")
     }
 

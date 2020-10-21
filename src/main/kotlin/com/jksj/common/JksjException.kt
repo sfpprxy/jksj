@@ -4,8 +4,10 @@ import kotlin.random.Random
 
 class JksjException(message: String, var errorType: ErrorType) : RuntimeException(message)
 
+@Suppress("NOTHING_TO_INLINE")
 inline fun err(message: Any, errorType: ErrorType): Nothing = throw JksjException(message.toString(), errorType)
 
+@Suppress("NOTHING_TO_INLINE")
 inline fun exp(message: Any, errorType: ErrorType): JksjException = JksjException(message.toString(), errorType)
 
 enum class ErrorType {

@@ -50,9 +50,11 @@ class UserService : UserApi {
         .expireAfterAccess(1, TimeUnit.DAYS)
         .build()
 
+    val MAX_HOURS = 4L
+
     val remoteWorkSessions: Cache<String, RemoteWorkStats> = CacheBuilder.newBuilder()
         .concurrencyLevel(Runtime.getRuntime().availableProcessors())
-        .expireAfterAccess(1, TimeUnit.DAYS)
+        .expireAfterWrite(MAX_HOURS, TimeUnit.HOURS)
         .build()
 
     @Inject
@@ -91,14 +93,12 @@ class UserService : UserApi {
             }
         }
 
-        return userSessions.getIfPresent(token) ?: run {
-            err("用户未登录", ErrorType.UNAUTHORIZED)
-        }
+        return userSessions.getIfPresent(token) ?: err("用户未登录", ErrorType.UNAUTHORIZED)
     }
 
     override fun getInfo(): UserInfo {
         val user = getUserSession()
-        return UserInfo(user.id, user.oaRealName, user.oaDeptId)
+        return UserInfo(user.id, user.oaLoginName, user.oaRealName, user.oaDeptId)
     }
 
     private fun loadAllFromOA(): List<AppUser> {
@@ -122,6 +122,7 @@ class UserService : UserApi {
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun loadAllFromVH(users: List<AppUser>): List<AppUser> {
         TODO("later")
     }
@@ -168,9 +169,7 @@ class UserService : UserApi {
 
     override fun getRemoteWorkStatus(): RemoteWorkStats {
         val userSession = getUserSession()
-        val remoteWork = remoteWorkSessions.getIfPresent(userSession.id) ?: run {
-            RemoteWorkStats()
-        }
+        val remoteWork = remoteWorkSessions.getIfPresent(userSession.id) ?: RemoteWorkStats()
 
         val (timeUsed, timeUsedSec) = remoteWorkRepo.getTimeUsedByUser(userSession.id)
         remoteWork.timeUsed = timeUsed + 1
@@ -180,23 +179,25 @@ class UserService : UserApi {
             remoteWork.timeUsed -= 1
             val timeApplied = remoteWork.timeApplied!!
             val sessionTimeUsedSec = Instant.now().epochSecond - it
-            remoteWork.timeUsedSec = sessionTimeUsedSec + timeUsedSec - timeApplied
-            remoteWork.timeRemaining = timeApplied - sessionTimeUsedSec
-            if (remoteWork.timeRemaining > 0) {
-                return remoteWork
+            if (sessionTimeUsedSec > timeApplied) {
+                remoteWork.timeUsedSec = timeUsedSec
+                remoteWork.timeRemaining = 0
+            } else {
+                remoteWork.timeUsedSec = sessionTimeUsedSec + timeUsedSec - timeApplied
+                remoteWork.timeRemaining = timeApplied - sessionTimeUsedSec
             }
         }
         return remoteWork
     }
 
-    private fun createFrpSession(hour: Double): Pair<Long, Int> {
+    private fun createFrpSession(seconds: Long): Int {
         // /root/frp_0.27.0_linux_amd64
         // timeout 3600 nohup /root/frp_0.27.0_linux_amd64/frpc tcp -l 888 -r 10559 -s sh.asdk.io:7000 -n jksj_10559 &
-        val seconds = (hour * 3600).toLong()
         val port = Random().nextInt(10000) + 10000
         val command = "timeout $seconds nohup " +
             "/root/frp_0.27.0_linux_amd64/frpc tcp -l 888 -r $port -s $domain:7000 -n jksj_$port" +
             " &"
+        // todo do not close frp sessions when quit app
         threadPool.submit {
             ProcessBuilder(command.split(" ").toList())
                 .redirectOutput(ProcessBuilder.Redirect.INHERIT)
@@ -204,7 +205,7 @@ class UserService : UserApi {
                 .start()
                 .waitFor(4, TimeUnit.HOURS)
         }
-        return Pair(seconds, port)
+        return port
     }
 
     @Transactional
@@ -221,7 +222,8 @@ class UserService : UserApi {
         }
 
         log.info { "${userSession.oaRealName} apply_remote_work for $hour hour" }
-        val (seconds, port) = createFrpSession(hour)
+        val seconds = (hour * 3600).toLong()
+        val port = createFrpSession(seconds)
 
         val link = "http://$domain:$port"
         val newRemote = RemoteWorkStats(

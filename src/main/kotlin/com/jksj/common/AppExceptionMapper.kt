@@ -6,6 +6,8 @@ import mu.KotlinLogging
 import java.io.PrintWriter
 import java.io.StringWriter
 import javax.inject.Inject
+import javax.ws.rs.NotAllowedException
+import javax.ws.rs.NotFoundException
 import javax.ws.rs.core.Response
 import javax.ws.rs.ext.ExceptionMapper
 import javax.ws.rs.ext.Provider
@@ -25,25 +27,39 @@ class AppExceptionMapper : ExceptionMapper<Exception> {
         return errorMsg.toString()
     }
 
+    @Suppress("NOTHING_TO_INLINE")
+    private inline fun newErrResp(exp: Exception, bizMsg: String, type: String): ErrorResp {
+        return ErrorResp(bizMsg + " " + exp.message, "ERR_$type")
+    }
+
     override fun toResponse(exp: Exception): Response {
         val code: Int
         val error: ErrorResp
         when (exp) {
             is JksjException -> {
                 code = 400
-                error = ErrorResp(exp.message, "ERR_" + exp.errorType.name)
-                log.info { "$error ${exp.stackTrace[0]} ${exp.message} ${requestFilter.getHTTPInput()}" }
+                error = newErrResp(exp, "", exp.errorType.name)
             }
             is JsonParseException -> {
                 code = 400
-                error = ErrorResp("json格式错误: " + exp.message, "ERR_JSON_FORMAT")
-                log.info { "$error ${exp.stackTrace[0]} ${exp.message} ${requestFilter.getHTTPInput()}" }
+                error = newErrResp(exp, "json格式错误: ", "JSON_FORMAT")
+            }
+            is NotAllowedException -> {
+                code = 400
+                error = newErrResp(exp, "HTTP方法错误，请用POST", ErrorType.WRONG_INPUT.name)
+            }
+            is NotFoundException -> {
+                code = 400
+                error = newErrResp(exp, "URL错误，请检查路径 ", ErrorType.WRONG_INPUT.name)
             }
             else -> {
                 code = 500
                 error = ErrorResp("服务器内部错误，请联系管理员", "ERR_UNKNOWN")
-                log.error { "$error ${getExpEntity(exp)} ${requestFilter.getHTTPInput()}" }
             }
+        }
+        when (code) {
+            400 -> log.info { "$error ${exp.stackTrace[0]} ${exp.message} ${requestFilter.getHTTPInput()}" }
+            500 -> log.error { "$error ${getExpEntity(exp)} ${requestFilter.getHTTPInput()}" }
         }
 
         return Response.status(code)
