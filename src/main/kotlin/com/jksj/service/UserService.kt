@@ -197,7 +197,6 @@ class UserService : UserApi {
         val command = "timeout $seconds nohup " +
             "/root/frp_0.27.0_linux_amd64/frpc tcp -l 888 -r $port -s $domain:7000 -n jksj_$port" +
             " &"
-        // todo do not close frp sessions when quit app
         threadPool.submit {
             ProcessBuilder(command.split(" ").toList())
                 .redirectOutput(ProcessBuilder.Redirect.INHERIT)

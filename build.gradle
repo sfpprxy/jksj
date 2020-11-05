@@ -2,7 +2,7 @@ import java.lang.annotation.Annotation
 
 plugins {
     id 'java'
-    id 'io.quarkus' version '1.8.1.Final'
+    id 'io.quarkus' version '1.9.0.Final'
     id 'org.jetbrains.intellij' version '0.4.22'
     id 'org.jetbrains.kotlin.jvm' version '1.4.0'
     id "org.jetbrains.kotlin.plugin.allopen" version "1.4.0"
@@ -21,7 +21,7 @@ allprojects {
 }
 
 dependencies {
-    implementation enforcedPlatform('io.quarkus:quarkus-bom:1.8.1.Final')
+    implementation enforcedPlatform('io.quarkus:quarkus-bom:1.9.0.Final')
     implementation 'io.quarkus:quarkus-kotlin'
     implementation 'io.quarkus:quarkus-resteasy'
     implementation 'io.quarkus:quarkus-resteasy-jackson'
@@ -37,6 +37,7 @@ dependencies {
 
     implementation 'io.github.microutils:kotlin-logging:1.12.0'
     implementation 'com.google.code.gson:gson:2.8.6'
+    implementation 'com.google.guava:guava:29.0-jre'
 
     implementation 'io.quarkus:quarkus-quartz'
 

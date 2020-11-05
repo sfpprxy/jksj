@@ -26,7 +26,8 @@ class RequestFilter : ContainerRequestFilter {
         val path = uriInfo.path
         val address = request.remoteAddress().toString()
         val token = request.getHeader("token")
-        log.info { "Request $method $path from IP $address with token $token" }
+        val xForwardedFor = request.getHeader("X-Forwarded-For") ?: address
+        log.info { "Request $method $path from IP $xForwardedFor with token $token" }
     }
 
     fun getHTTPInput(): String {
