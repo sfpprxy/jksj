@@ -72,6 +72,16 @@ class UserService : UserApi {
     @ConfigProperty(name = "server.domain")
     lateinit var domain: String
 
+    @ConfigProperty(name = "frp.path")
+    lateinit var frpPath: String
+
+    @ConfigProperty(name = "frp.server-port")
+    lateinit var frpServerPort: String
+
+    @ConfigProperty(name = "frp.app-port")
+    lateinit var frpAppPort: String
+
+
     override fun login(login: Login): Identity {
         val user = userRepo.findByLoginNameAndPassword(login.username, login.password)
         val identity = Identity(md5(user.id + Instant.now().epochSecond.toString()))
@@ -191,11 +201,11 @@ class UserService : UserApi {
     }
 
     private fun createFrpSession(seconds: Long): Int {
-        // /root/frp_0.27.0_linux_amd64
-        // timeout 3600 nohup /root/frp_0.27.0_linux_amd64/frpc tcp -l 888 -r 10559 -s sh.asdk.io:7000 -n jksj_10559 &
+        // /root/frp_0.36.2_linux_amd64
+        // timeout 3600 nohup /root/d/frp_0.36.2_linux_amd64/frpc tcp -l 888 -r 10559 -s sh.asdk.io:7000 -n jksj_10559 &
         val port = Random().nextInt(10000) + 10000
         val command = "timeout $seconds nohup " +
-            "/root/frp_0.27.0_linux_amd64/frpc tcp -l 888 -r $port -s $domain:7000 -n jksj_$port" +
+            "$frpPath tcp -l $frpAppPort -r $port -s $domain:$frpServerPort -n jksj_$port" +
             " &"
         threadPool.submit {
             ProcessBuilder(command.split(" ").toList())
